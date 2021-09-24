@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".view.InputFragment">
+
+    <TextView
+        android:id="@+id/tvSignTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/holo_purple"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingTop="@dimen/activity_vertical_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:text="추가 내용"
+        android:textSize="25sp" />
+
+    <RelativeLayout
+        android:id="@+id/rlSignContainer"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_above="@+id/buttons_container"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingTop="@dimen/activity_vertical_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingBottom="@dimen/activity_vertical_margin">
+
+        <EditText
+            android:layout_alignParentLeft="true"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLength="39"
+            android:id="@+id/etInputText"/>
+
+        <LinearLayout
+            android:id="@+id/llButtonSignContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:orientation="horizontal"
+            android:paddingTop="16dp">
+
+            <Button
+                android:id="@+id/btInputBack"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/sign_bottom_btn_selector"
+                android:text="back" />
+
+            <Button
+                android:id="@+id/btInputClear"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/sign_bottom_btn_selector"
+                android:text="clear" />
+
+            <Button
+                android:id="@+id/btInputSave"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/sign_bottom_btn_selector"
+                android:enabled="false"
+                android:text="save" />
+        </LinearLayout>
+    </RelativeLayout>
+
+
+</LinearLayout>

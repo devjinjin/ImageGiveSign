@@ -1,9 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/drawable/mouse_bottom_left_btn_selector.xml" value="0.22083333333333333" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/drawable/sign_border.xml" value="0.20625" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/drawable/sign_bottom_btn_selector.xml" value="0.22083333333333333" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/drawable/sign_bottom_right_btn_selector.xml" value="0.22083333333333333" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/activity_image_sample.xml" value="0.2046875" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/activity_main.xml" value="0.25" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/activity_signature.xml" value="0.2046875" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/activity_signing.xml" value="0.2957427536231884" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/fragment_information.xml" value="0.2046875" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/fragment_input.xml" value="0.2046875" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/fragment_signature.xml" value="0.2046875" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/signature_fragment.xml" value="0.2046875" />
+        <entry key="..\:/Aimskorea/ImageGiveSign/app/src/main/res/layout/view_sign_move.xml" value="0.2046875" />
+      </map>
+    </option>
+  </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">
     <option name="id" value="Android" />
+  </component>
+  <component name="VisualizationToolProject">
+    <option name="state">
+      <ProjectState>
+        <option name="scale" value="0.2046875" />
+      </ProjectState>
+    </option>
   </component>
 </project>

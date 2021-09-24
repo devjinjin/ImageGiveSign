@@ -1,180 +1,274 @@
 package kr.aimskorea.imagegivesign;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.app.Activity;
-import android.content.Context;
-import android.content.ContextWrapper;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.PointF;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.GestureDetector;
+import android.os.Environment;
+import android.util.Log;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 
-import kr.aimskorea.imagegivesign.view.SignMoveView;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
-public class SigningActivity extends AppCompatActivity {
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
-    //이미지 뷰
-    SignMoveView mSigningImageView;
+import kr.aimskorea.imagegivesign.models.UserInfo;
+import kr.aimskorea.imagegivesign.view.InformationFragment;
+import kr.aimskorea.imagegivesign.view.InputFragment;
+import kr.aimskorea.imagegivesign.view.SignatureFragment;
+import kr.aimskorea.imagegivesign.view.photoview.OnMatrixChangedListener;
+import kr.aimskorea.imagegivesign.view.photoview.OnPhotoTapListener;
+import kr.aimskorea.imagegivesign.view.photoview.OnSingleFlingListener;
+import kr.aimskorea.imagegivesign.view.photoview.PhotoView;
 
+public class SigningActivity extends AppCompatActivity
+        implements SignatureFragment.IOnBitmapSaveListener,
+        InputFragment.IOnInputTextResultListener, InformationFragment.IOnInformationResultListener {
 
+    private PhotoView mPhotoView;
 
+    private Toast mCurrentToast;
+    private UserInfo userInfo = null;
+    private boolean mIsUserChecked = false;
 
+    private Button mConfirmButton;
+    static final String PHOTO_TAP_TOAST_STRING = "Photo Tap! X: %.2f %% Y:%.2f %% ID: %d";
+    static final String SCALE_TOAST_STRING = "Scaled to: %.2ff";
+    static final String FLING_LOG_STRING = "Fling velocityX: %.2f, velocityY: %.2f";
 
-
-    private final static float MIN_SCALE = 1.0f; // min and max for zoom level
-    private final static float MAX_SCALE = 5.0f;
-
-    private float mScaleFactor = 1.0f;
-
-
-    private float originX = 0;
-    private float originY = 0;
-
-
-
-    private GestureDetector gesture;
-
-    private ScaleGestureDetector mScaleGestureDetector;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_signing);
-        //로드되어 보일 이미지뷰
-        mSigningImageView = findViewById(R.id.cSign);
-        //화면 세로 고정
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-    }
+        setContentView(R.layout.activity_signing);
 
-    public static Activity getActivity(View view) {
-        Context context = view.getContext();
-        while (context instanceof ContextWrapper) {
-            if (context instanceof Activity) {
-                return (Activity)context;
-            }
-            context = ((ContextWrapper)context).getBaseContext();
-        }
-        return null;
-    }
+        mPhotoView = findViewById(R.id.iv_photo);
 
-    @Override
-    protected void onResume() {
-        super.onResume();
 
-        //그림 로드
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(),
-                R.drawable.bike_docs);
 
-        //이미지가 가져올수 있다면
-        if (bitmap != null) {
-            mSigningImageView.setBackgroundBitmap(bitmap, bitmap.getWidth(), bitmap.getHeight());
-        } else {
-            //강제 종료
-            finish();
-        }
+        userInfo = new UserInfo();
+        userInfo.userName = "함정식";
+        userInfo.managerName = "이진영";
+        userInfo.modelColor = "블랙";
+        userInfo.batteryId1 = "12345678912345678";
+        userInfo.batteryId2 = "12345678912345678";
+        userInfo.modelName = "레오";
+        userInfo.modelNumber = "leo23123131231";
+        userInfo.currentTime = new Date();
 
-        mScaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
-        gesture = new GestureDetector(this, new GestureListener());
 
-        mSigningImageView.setMoveViewClickListener(new SignMoveView.ISignMoveViewClickListener() {
+        mPhotoView.setUserInfo(userInfo);
+
+        mConfirmButton = findViewById(R.id.btSignConfirm);
+        mConfirmButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClickSignView(SignMoveView.SignType type) {
-                if (type == SignMoveView.SignType.OFFICE_SIGN ){
-                    Toast.makeText(getApplicationContext(), "관리자 사인", Toast.LENGTH_SHORT).show();
-                }else if (type == SignMoveView.SignType.OFFICE_MANUAL ){
-                    Toast.makeText(getApplicationContext(), "메뉴얼 확인", Toast.LENGTH_SHORT).show();
-                }else{
-                    Toast.makeText(getApplicationContext(), "유저 사인 확인", Toast.LENGTH_SHORT).show();
-                }
+            public void onClick(View view) {
+                saveSignConfirmImage();
             }
         });
+        Drawable drawable = ContextCompat.getDrawable(this, R.drawable.doc_image);
+
+        if (drawable instanceof BitmapDrawable) {
+            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+            if (bitmapDrawable.getBitmap() != null) {
+                mPhotoView.setImageBitmap(((BitmapDrawable) drawable).getBitmap());
+            }
+        }
+
+
+        // Lets attach some listeners, not required though!
+        mPhotoView.setOnMatrixChangeListener(new MatrixChangeListener());
+        mPhotoView.setOnPhotoTapListener(new PhotoTapListener());
+        mPhotoView.setOnSingleFlingListener(new SingleFlingListener());
+        checkConfirmButtonState();
     }
 
+    public void checkConfirmButtonState() {
+        if (userInfo != null && mPhotoView.isSigned() && mIsUserChecked) {
+            mConfirmButton.setEnabled(true);
+        } else {
+            mConfirmButton.setEnabled(false);
+        }
+
+    }
+
+    public void saveSignConfirmImage() {
+        Bitmap bitmap = mPhotoView.getCurrentBitmap();
+
+        addJpgSignatureToGallery(bitmap);
+
+        Toast.makeText(getApplicationContext(), "저장되었습니다", Toast.LENGTH_LONG).show();
+    }
+
+    public boolean addJpgSignatureToGallery(Bitmap signature) {
+        boolean result = false;
+        try {
+//            File photo = new File(getAlbumStorageDir("NanuManager"), String.format("NanuManager_%d.jpg", System.currentTimeMillis()));
+            File photo = new File(getAlbumStorageDir("NanuManager"), String.format("NanuManager_%s.jpg", userInfo.modelNumber));
+            saveBitmapToJpg(signature, photo);
+            scanMediaFile(photo);
+            result = true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    private void scanMediaFile(File photo) {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        Uri contentUri = Uri.fromFile(photo);
+        mediaScanIntent.setData(contentUri);
+        SigningActivity.this.sendBroadcast(mediaScanIntent);
+    }
+
+    public void saveBitmapToJpg(Bitmap bitmap, File photo) throws IOException {
+        Bitmap newBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+//        Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(newBitmap);
+        canvas.drawColor(Color.WHITE);
+        canvas.drawBitmap(bitmap, 0, 0, null);
+        OutputStream stream = new FileOutputStream(photo);
+        newBitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+        stream.close();
+    }
+
+    public File getAlbumStorageDir(String albumName) {
+        // Get the directory for the user's public pictures directory.
+        File file = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES), albumName);
+        if (!file.mkdirs()) {
+            Log.e("SignaturePad", "Directory not created");
+        }
+        return file;
+    }
+
+
+    @Override
+    public void onSaveSignPath(SignatureFragment.SignatureType pType, String pSignPathString) {
+        File imgFile = new File(pSignPathString);
+
+        if (imgFile.exists()) {
+
+            Bitmap mUserSignBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+
+            Drawable drawable = ContextCompat.getDrawable(this, R.drawable.doc_image);
+
+            if (drawable instanceof BitmapDrawable) {
+                BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+                if (bitmapDrawable.getBitmap() != null) {
+                    if (pType == SignatureFragment.SignatureType.USER) {
+                        mPhotoView.setUserSignImage(((BitmapDrawable) drawable).getBitmap(), mUserSignBitmap);
+                    } else {
+                        mPhotoView.setOfficeSignImage(((BitmapDrawable) drawable).getBitmap(), mUserSignBitmap);
+                    }
+                    checkConfirmButtonState();
+                }
+            }
+
+        }
+
+//        Toast.makeText(getApplicationContext(), "사인정보 "+pSignPathString , Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onTextInputResult(String pInputText) {
+        mPhotoView.setInputString(pInputText);
+        Drawable drawable = ContextCompat.getDrawable(this, R.drawable.doc_image);
+
+        if (drawable instanceof BitmapDrawable) {
+            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+            if (bitmapDrawable.getBitmap() != null) {
+                mPhotoView.updateInfo(((BitmapDrawable) drawable).getBitmap());
+                checkConfirmButtonState();
+            }
+        }
+    }
 
 
 
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        if (!gesture.onTouchEvent(event)) {
-            return mScaleGestureDetector.onTouchEvent(event);
-        }
-        return true;
-    }
+    public void onCheckInputResult(HashMap<Integer, Boolean> pUserCheckMap) {
+        mIsUserChecked = true;
+        Drawable drawable = ContextCompat.getDrawable(this, R.drawable.doc_image);
+        mPhotoView.setIsUserCheckInformation(mIsUserChecked, pUserCheckMap);
 
-
-
-    private class GestureListener implements GestureDetector.OnGestureListener {
-
-
-        @Override
-        public boolean onDown(MotionEvent motionEvent) {
-            return false;
-        }
-
-        @Override
-        public void onShowPress(MotionEvent motionEvent) {
-
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent motionEvent) {
-            return false;
-        }
-
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float dx, float dy) {
-            originX += dx / mScaleFactor; // we need to scale the movement delta for correct movement
-            originY += dy / mScaleFactor;
-
-            return true;
-        }
-
-        @Override
-        public void onLongPress(MotionEvent motionEvent) {
-
-        }
-
-        @Override
-        public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
-            return false;
+        if (drawable instanceof BitmapDrawable) {
+            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+            if (bitmapDrawable.getBitmap() != null) {
+                mPhotoView.updateInfo(((BitmapDrawable) drawable).getBitmap());
+                checkConfirmButtonState();
+            }
         }
     }
 
-    private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-        private PointF viewportFocus = new PointF();
-        private float lastSpanX;
-        private float lastSpanY;
-
+    private class MatrixChangeListener implements OnMatrixChangedListener {
 
         @Override
-        public boolean onScale(ScaleGestureDetector scaleGestureDetector) {
-            // ScaleGestureDetector에서 factor를 받아 변수로 선언한 factor에 넣고
-            mScaleFactor *= scaleGestureDetector.getScaleFactor();
+        public void onMatrixChanged(RectF rect) {
+//            mCurrMatrixTv.setText(rect.toString());
+        }
+    }
 
-            float fx = scaleGestureDetector.getFocusX();
-            float fy = scaleGestureDetector.getFocusY();
+    private class PhotoTapListener implements OnPhotoTapListener {
 
-            originX += fx / mScaleFactor; // move origin to focus
-            originY += fy / mScaleFactor;
+        @Override
+        public void onPhotoTap(ImageView view, float x, float y) {
+            float xPercentage = x * 100f;
+            float yPercentage = y * 100f;
 
+            if ((6.0f < xPercentage) && (xPercentage < 91.4f) && (44.8f < yPercentage) && (yPercentage < 64.7f)) {
+                InformationFragment e = InformationFragment.newInstance(SigningActivity.this);
+                e.show(getSupportFragmentManager(), InformationFragment.class.getSimpleName());
+            } else if ((8.3f < xPercentage) && (xPercentage < 50.0f) && (85.4f < yPercentage) && (yPercentage < 92.5f)) {
+                SignatureFragment e = SignatureFragment.newInstance(SignatureFragment.SignatureType.OFFICE.ordinal());
+                e.setOnBitmapSaveListener(SigningActivity.this);
+                e.show(getSupportFragmentManager(), SignatureFragment.class.getSimpleName());
 
-            mScaleFactor = Math.max(MIN_SCALE,
-                    Math.min(mScaleFactor, MAX_SCALE));
+            } else if ((50.0f < xPercentage) && (xPercentage < 92.6f) && (85.4f < yPercentage) && (yPercentage < 92.5f)) {
+                SignatureFragment e = SignatureFragment.newInstance(SignatureFragment.SignatureType.USER.ordinal());
+                e.setOnBitmapSaveListener(SigningActivity.this);
+                e.show(getSupportFragmentManager(), SignatureFragment.class.getSimpleName());
+            } else if ((6.2f < xPercentage) && (xPercentage < 92.6f) && (70.0f < yPercentage) && (yPercentage < 74.2f)) {
+                InputFragment e = InputFragment.newInstance(SigningActivity.this);
+                e.show(getSupportFragmentManager(), InputFragment.class.getSimpleName());
+            }
+//            showToast(String.format(PHOTO_TAP_TOAST_STRING, xPercentage, yPercentage, view == null ? 0 : view.getId()));
+        }
+    }
 
-            // 이미지뷰 스케일에 적용
-            mSigningImageView.setScaleX(mScaleFactor);
-            mSigningImageView.setScaleY(mScaleFactor);
+    private void showToast(CharSequence text) {
+        if (mCurrentToast != null) {
+            mCurrentToast.cancel();
+        }
 
-            originX -= fx / mScaleFactor; // move back, allow us to zoom with (fx,fy) as center
-            originY -= fy / mScaleFactor;
+        mCurrentToast = Toast.makeText(SigningActivity.this, text, Toast.LENGTH_SHORT);
+        mCurrentToast.show();
+    }
 
+    private class SingleFlingListener implements OnSingleFlingListener {
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            Log.d("PhotoView", String.format(FLING_LOG_STRING, velocityX, velocityY));
             return true;
         }
     }
